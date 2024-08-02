@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "timing-tasks",
+    "scheme": "myapp",
     "slug": "timing-tasks",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,10 +19,28 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.zeyron.timingtasks",
+      "sound": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/bell.wav"]
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "87e66ef5-ca6f-4d96-9096-c8a32a76817b"
+      }
     }
   }
 }
