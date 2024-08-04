@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,15 +19,25 @@ const Dropdown = ({
   dropdownBorderColor = 'gray',
 }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [buttonWidth, setButtonWidth] = useState(0);
+  const buttonRef = useRef(null);
 
   const handleSelect = (itemValue) => {
+    console.log(itemValue);
     onValueChange(itemValue);
     setDropdownVisible(false);
+  };
+
+  const onButtonLayout = (event) => {
+    const { width } = event.nativeEvent.layout;
+    setButtonWidth(width);
   };
 
   return (
     <View style={styles.buttonContainer}>
       <TouchableOpacity
+        ref={buttonRef}
+        onLayout={onButtonLayout}
         onPress={() => enabled && setDropdownVisible(!dropdownVisible)}
         style={[
           styles.button,
@@ -42,7 +52,6 @@ const Dropdown = ({
           {items.find((item) => item.value === selectedValue)?.label ||
             'Selecciona una opción'}
           {'\u00A0'}
-          {'\u00A0'}
           <AntDesign name='caretdown' size={16} color={buttonTextColor} />
         </Text>
       </TouchableOpacity>
@@ -52,6 +61,7 @@ const Dropdown = ({
             styles.dropdownContainer,
             {
               backgroundColor: buttonBackgroundColor,
+              width: buttonWidth, // Set the width to the measured button width
             },
           ]}
         >
@@ -105,7 +115,6 @@ const styles = StyleSheet.create({
   dropdownContainer: {
     position: 'absolute',
     top: '100%',
-    width: 120,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'gray',

@@ -6,6 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { router } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { formatTimeFromDate } from '../../utils/timeUitls';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function createTask() {
   const [task, setTask] = useState({
@@ -22,6 +23,8 @@ export default function createTask() {
   const [isSaveEnabled, setIsSaveEnabled] = useState(false);
 
   const { colorScheme, toggleColorScheme } = useColorScheme();
+
+  const { selectedPage } = useLocalSearchParams();
 
   const db = SQLite.openDatabaseSync('tasks.db', {
     useNewConnection: true,
@@ -60,14 +63,14 @@ export default function createTask() {
     try {
       if (!task.startTime) {
         await db.runAsync(
-          `INSERT INTO tasks (title, duration, rest) values ('${task.title}', ${task.duration}, ${task.rest} )`
+          `INSERT INTO tasks (title, duration, rest, page) values ('${task.title}', ${task.duration}, ${task.rest}, ${selectedPage} )`
         );
       } else {
         await db.runAsync(
-          `INSERT INTO tasks (title, duration, rest, startTime, endTime, fixed) values 
+          `INSERT INTO tasks (title, duration, rest, startTime, endTime, fixed, page) values 
           ('${task.title}', ${task.duration}, ${
             task.rest
-          }, '${task.startTime.toISOString()}', '${task.endTime.toISOString()}', 1 )`
+          }, '${task.startTime.toISOString()}', '${task.endTime.toISOString()}', 1, ${selectedPage} )`
         );
       }
 
@@ -94,7 +97,7 @@ export default function createTask() {
         <View className='w-1/2 flex flex-row items-center justify-center'>
           <Text className='mr-2 dark:text-white'>Duración:</Text>
           <TextInput
-            className='border-b border-b-neutral-400'
+            className='border-b border-b-neutral-400 dark:text-white'
             placeholder='Minutos'
             placeholderTextColor='gray'
             selectionColor={'black'}
@@ -164,7 +167,7 @@ export default function createTask() {
           <View className='w-1/2 flex flex-row items-center justify-center'>
             <Text className='mr-2 dark:text-white'>Descanso:</Text>
             <TextInput
-              className='border-b border-b-neutral-400'
+              className='border-b border-b-neutral-400 dark:text-white'
               placeholder='Minutos'
               placeholderTextColor='gray'
               selectionColor={'black'}

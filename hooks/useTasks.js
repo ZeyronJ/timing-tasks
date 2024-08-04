@@ -7,12 +7,17 @@ import {
 import { checkFixedTasks } from '../utils/timeUitls';
 import { useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import { useColorScheme } from 'nativewind';
 
 export const useTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [temporizador, setTemporizador] = useState(0);
   const [startDay, setStartDay] = useState(0);
   const [remainingTime, setRemainingTime] = useState(0);
+  const [config, setConfig] = useState({});
+  const [selectedPage, setSelectedPage] = useState(1);
+  const { colorScheme, toggleColorScheme } = useColorScheme();
+  // const [pages, setPages] = useState([]);
 
   const db = openDatabase();
 
@@ -23,6 +28,7 @@ export const useTasks = () => {
   useFocusEffect(
     useCallback(() => {
       createTable(db);
+      console.log('focusEffect');
 
       const getTasks = async () => {
         try {
@@ -33,6 +39,57 @@ export const useTasks = () => {
         }
       };
 
+      // const getPages = async () => {
+      //   try {
+      //     const pages = await db.getAllAsync('SELECT * FROM pages');
+      //     if (pages.length === 0) {
+      //       // Insertar valores seed en la tabla pages
+      //       db.execSync(`
+      //         INSERT INTO pages (id) VALUES (1);
+      //         INSERT INTO pages (id) VALUES (2);
+      //         INSERT INTO pages (id) VALUES (3);
+      //         INSERT INTO pages (id) VALUES (4);
+      //         INSERT INTO pages (id) VALUES (5);
+      //       `);
+      //       const pages = await db.getAllAsync('SELECT * FROM pages');
+      //       setPages(pages);
+      //     } else {
+      //       setPages(pages);
+      //     }
+      //   } catch (error) {
+      //     console.log(error);
+      //   }
+      // };
+
+      const getConfig = () => {
+        try {
+          let resConfig = db.getFirstSync('SELECT * FROM config WHERE id = 1');
+          if (resConfig) {
+            setConfig(resConfig);
+          } else {
+            db.execSync(`
+              INSERT INTO config (id) VALUES (1);
+            `);
+            const firstConfig = db.getFirstSync(
+              'SELECT * FROM config WHERE id = 1'
+            );
+            setConfig(firstConfig);
+            resConfig = firstConfig;
+          }
+          console.log('config', resConfig);
+          setSelectedPage(resConfig.selectedPage);
+          setTemporizador(resConfig.temporizador);
+          setStartDay(resConfig.startDay);
+          if (colorScheme !== resConfig.colorScheme) {
+            toggleColorScheme();
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      };
+
+      // getPages();
+      getConfig();
       getTasks();
     }, [startDay])
   );
@@ -130,5 +187,8 @@ export const useTasks = () => {
     setTemporizador,
     handleStartDay,
     deleteTask,
+    selectedPage,
+    setStartDay,
+    colorScheme,
   };
 };

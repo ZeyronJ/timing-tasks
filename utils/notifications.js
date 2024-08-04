@@ -33,7 +33,7 @@ export async function registerForPushNotificationsAsync() {
       );
       return;
     } else {
-      console.log('Permisos de notificaciones concedidos');
+      // console.log('Permisos de notificaciones concedidos');
     }
   } else {
     alert('Must use physical device for notifications');

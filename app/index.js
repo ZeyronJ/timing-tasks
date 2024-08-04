@@ -4,10 +4,11 @@ import Dropdown from '../components/Dropdown';
 import TaskList from '../components/TaskList';
 import Layout from '../components/Layout';
 import { useColorScheme } from 'nativewind';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { formatTimeFromSeconds } from '../utils/timeUitls';
+import { useState, useEffect, useCallback } from 'react';
 
-const items = [
+const itemsTemporizador = [
   { label: '0 minutos', value: 0 },
   { label: '1 minuto', value: 1 },
   { label: '2 minutos', value: 2 },
@@ -16,6 +17,14 @@ const items = [
   { label: '15 minutos', value: 15 },
   { label: '30 minutos', value: 30 },
   { label: '60 minutos', value: 60 },
+];
+
+const itemsPages = [
+  { label: '1', value: 1 },
+  { label: '2', value: 2 },
+  { label: '3', value: 3 },
+  { label: '4', value: 4 },
+  { label: '5', value: 5 },
 ];
 
 export default function Page() {
@@ -27,11 +36,33 @@ export default function Page() {
     setTemporizador,
     handleStartDay,
     deleteTask,
+    colorScheme,
+    selectedPage,
+    setSelectedPage,
   } = useTasks();
-  const { colorScheme } = useColorScheme();
+  // const [selectedPage, setSelectedPage] = useState(1);
+  const [visibleTasks, setVisibleTasks] = useState([]);
+  // const { colorScheme, toggleColorScheme } = useColorScheme();
 
+  useEffect(() => {
+    setVisibleTasks(tasks.filter((task) => task.page === selectedPage));
+    console.log(selectedPage, temporizador, colorScheme, startDay);
+  }, [selectedPage, tasks]);
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     // console.log('focusEffect');
+  //     // console.log('config', config);
+  //     // setSelectedPage(config.selectedPage);
+  //     // setTemporizador(config.temporizador);
+  //     // setStartDay(config.startDay);
+  //     // if (colorScheme !== config.colorScheme) {
+  //     //   toggleColorScheme();
+  //     // }
+  //   }, [])
+  // );
   return (
     <Layout>
+      {/* Botón principal Iniciar dia */}
       <TouchableOpacity onPress={handleStartDay}>
         <View
           className={`rounded-full w-28 h-28 flex items-center justify-center mb-4 border ${
@@ -51,10 +82,20 @@ export default function Page() {
           </Text>
         </View>
       </TouchableOpacity>
+      {/* Texto Temporizador */}
       <View className='flex flex-row'>
-        <Text className='w-1/2'></Text>
+        <Text className='w-1/3'></Text>
         <Text
-          className={`w-1/2 text-center ${
+          className={`w-1/3 text-center ${
+            startDay === 0
+              ? 'dark:text-white'
+              : 'text-neutral-500 dark:text-neutral-400'
+          }`}
+        >
+          Pagina:
+        </Text>
+        <Text
+          className={`w-1/3 text-center ${
             startDay === 0
               ? 'dark:text-white'
               : 'text-neutral-500 dark:text-neutral-400'
@@ -63,10 +104,16 @@ export default function Page() {
           Temporizador:
         </Text>
       </View>
-      <View className='flex flex-row'>
-        <View className='w-1/2 flex items-center justify-center'>
+      {/* Botones Agregar tarea y Temporizador */}
+      <View className='flex flex-row mb-2'>
+        <View className='w-1/3 flex items-center justify-center'>
           <TouchableOpacity
-            onPress={() => router.navigate('tasks/createTask')}
+            onPress={() =>
+              router.navigate({
+                pathname: 'tasks/createTask',
+                params: { selectedPage },
+              })
+            }
             disabled={startDay !== 0}
             className={`p-2 rounded ${
               startDay === 0
@@ -85,11 +132,38 @@ export default function Page() {
             </Text>
           </TouchableOpacity>
         </View>
-        <View className='w-1/2 flex items-center justify-center'>
+        <View className='w-1/3 flex items-center justify-center'>
+          <Dropdown
+            selectedValue={selectedPage}
+            onValueChange={setSelectedPage}
+            items={itemsPages}
+            enabled={startDay === 0}
+            colorScheme={colorScheme}
+            buttonBackgroundColor={colorScheme === 'light' ? 'white' : '#222'}
+            buttonTextColor={
+              startDay === 0
+                ? colorScheme === 'light'
+                  ? 'black'
+                  : 'white'
+                : 'gray'
+            }
+            borderButtonColor={
+              startDay === 0
+                ? colorScheme === 'light'
+                  ? 'gray'
+                  : 'hsl(0, 0%, 70%)'
+                : 'hsl(0, 0%, 50%)'
+            }
+            dropdownBorderColor={
+              colorScheme === 'light' ? 'gray' : 'hsl(0, 0%, 70%)'
+            }
+          />
+        </View>
+        <View className='w-1/3 flex items-center justify-center'>
           <Dropdown
             selectedValue={temporizador}
             onValueChange={setTemporizador}
-            items={items}
+            items={itemsTemporizador}
             enabled={startDay === 0}
             colorScheme={colorScheme}
             buttonBackgroundColor={colorScheme === 'light' ? 'white' : '#222'}
@@ -113,8 +187,9 @@ export default function Page() {
           />
         </View>
       </View>
+      {/* Lista de tareas */}
       <TaskList
-        tasks={tasks.map((task) => ({
+        tasks={visibleTasks.map((task) => ({
           ...task,
           startTime:
             task.startTime !== 'No especificado'
