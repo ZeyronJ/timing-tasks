@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
-import { FontAwesome } from '@expo/vector-icons';
+import { openDatabase, saveScheme } from '../utils/database';
 
 export default function HomeLayout() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
@@ -16,11 +16,15 @@ export default function HomeLayout() {
         headerTitleStyle: {
           fontWeight: 'semibold',
         },
+        animation: 'fade_from_bottom',
         headerTitleAlign: 'center',
         headerRight: () => (
           <TouchableOpacity
             onPress={() => {
+              const db = openDatabase();
               toggleColorScheme();
+              console.log(colorScheme === 'light' ? 'dark' : 'light');
+              saveScheme(db, colorScheme === 'light' ? 'dark' : 'light');
             }}
           >
             {colorScheme === 'light' ? (

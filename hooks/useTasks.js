@@ -1,23 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
-import { openDatabase, createTable } from '../utils/database';
+import { openDatabase, createTable, saveStartDay } from '../utils/database';
 import {
   registerForPushNotificationsAsync,
   scheduledTimeNotifications,
 } from '../utils/notifications';
-import { checkFixedTasks } from '../utils/timeUitls';
+import { checkFixedTasks, updateFixedTasks } from '../utils/timeUitls';
 import { useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useColorScheme } from 'nativewind';
 
 export const useTasks = () => {
   const [tasks, setTasks] = useState([]);
-  const [temporizador, setTemporizador] = useState(0);
+
+  // const [remainingTime, setRemainingTime] = useState(0);
   const [startDay, setStartDay] = useState(0);
-  const [remainingTime, setRemainingTime] = useState(0);
-  const [config, setConfig] = useState({});
+  const [temporizador, setTemporizador] = useState(0);
+
   const [selectedPage, setSelectedPage] = useState(1);
-  const { colorScheme, toggleColorScheme } = useColorScheme();
-  // const [pages, setPages] = useState([]);
+  const { colorScheme, setColorScheme } = useColorScheme();
+
+  const [fixedTasks, setFixedTasks] = useState([]);
 
   const db = openDatabase();
 
@@ -29,109 +31,66 @@ export const useTasks = () => {
     useCallback(() => {
       createTable(db);
       console.log('focusEffect');
-
-      const getTasks = async () => {
-        try {
-          const tasks = await db.getAllAsync('SELECT * FROM tasks');
-          setTasks(tasks);
-        } catch (error) {
-          console.log(error);
-        }
-      };
-
-      // const getPages = async () => {
-      //   try {
-      //     const pages = await db.getAllAsync('SELECT * FROM pages');
-      //     if (pages.length === 0) {
-      //       // Insertar valores seed en la tabla pages
-      //       db.execSync(`
-      //         INSERT INTO pages (id) VALUES (1);
-      //         INSERT INTO pages (id) VALUES (2);
-      //         INSERT INTO pages (id) VALUES (3);
-      //         INSERT INTO pages (id) VALUES (4);
-      //         INSERT INTO pages (id) VALUES (5);
-      //       `);
-      //       const pages = await db.getAllAsync('SELECT * FROM pages');
-      //       setPages(pages);
-      //     } else {
-      //       setPages(pages);
-      //     }
-      //   } catch (error) {
-      //     console.log(error);
-      //   }
-      // };
+      let page = 1;
 
       const getConfig = () => {
         try {
           let resConfig = db.getFirstSync('SELECT * FROM config WHERE id = 1');
           if (resConfig) {
-            setConfig(resConfig);
+            // console.log('cargando config...');
           } else {
+            console.log('asignando primer config...');
             db.execSync(`
-              INSERT INTO config (id) VALUES (1);
-            `);
+                INSERT INTO config (id) VALUES (1);
+              `);
             const firstConfig = db.getFirstSync(
               'SELECT * FROM config WHERE id = 1'
             );
-            setConfig(firstConfig);
             resConfig = firstConfig;
           }
-          console.log('config', resConfig);
+          // console.log('config:', resConfig);
+          setColorScheme(resConfig.colorScheme);
           setSelectedPage(resConfig.selectedPage);
           setTemporizador(resConfig.temporizador);
           setStartDay(resConfig.startDay);
-          if (colorScheme !== resConfig.colorScheme) {
-            toggleColorScheme();
-          }
+          page = resConfig.selectedPage;
+
+          const tasks = db.getAllSync(
+            `SELECT * FROM tasks WHERE page = ${page}`
+          );
+          setTasks(tasks);
+          const fixedTasks = tasks.filter((task) => task.fixed === 1);
+          setFixedTasks(fixedTasks);
+          updateFixedTasks(fixedTasks);
+          // console.log(tasks);
         } catch (error) {
           console.log(error);
         }
       };
 
-      // getPages();
       getConfig();
-      getTasks();
-    }, [startDay])
+
+      // getTasks();
+    }, [startDay, selectedPage])
   );
-
-  useEffect(() => {
-    let countdown;
-    if (startDay === 1 && remainingTime > 0) {
-      countdown = setInterval(() => {
-        setRemainingTime((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdown);
-            setStartDay(2);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => clearInterval(countdown);
-  }, [startDay, remainingTime]);
 
   const handleStartDay = () => {
     if (startDay === 0) {
       const startTime = new Date();
       let currentTime = startTime;
 
-      if (temporizador > 0) {
-        setRemainingTime(temporizador * 60);
-        setStartDay(1);
-        currentTime.setMinutes(currentTime.getMinutes() + temporizador);
-      } else {
-        setStartDay(2);
-      }
+      setStartDay(2);
+      saveStartDay(db, 2);
 
-      const fixedTasks = tasks.filter((task) => task.fixed === 1);
+      if (temporizador > 0)
+        currentTime.setMinutes(currentTime.getMinutes() + temporizador);
 
       const updatedTasks = tasks.map((task, i) => {
         if (task.fixed === 0) {
           currentTime = new Date(
             checkFixedTasks(task, currentTime, fixedTasks)
           );
+          // console.log(`${task.title} - ${currentTime.toLocaleString()}`);
 
           const startTaskTime = new Date(currentTime);
           currentTime.setMinutes(currentTime.getMinutes() + task.duration);
@@ -171,6 +130,7 @@ export const useTasks = () => {
       }
     });
     setStartDay(0);
+    saveStartDay(db, 0);
     Notifications.cancelAllScheduledNotificationsAsync();
   };
 
@@ -183,12 +143,12 @@ export const useTasks = () => {
     tasks,
     temporizador,
     startDay,
-    remainingTime,
     setTemporizador,
     handleStartDay,
     deleteTask,
     selectedPage,
     setStartDay,
     colorScheme,
+    setSelectedPage,
   };
 };

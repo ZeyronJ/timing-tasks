@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -26,6 +26,10 @@ export async function registerForPushNotificationsAsync() {
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
+      // agregar alerta para pedir permisos de batería
+      alert(
+        '¡Para recibir notificaciones en el tiempo programado, debes quitar restricciones de batería de la app!'
+      );
     }
     if (finalStatus !== 'granted') {
       alert(
@@ -47,7 +51,14 @@ export async function schedulePushNotification(task) {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: task.title,
-      body: taskEndTime.toLocaleTimeString(),
+      body:
+        'Inicio: ' +
+        taskStartTime.toLocaleTimeString() +
+        ' - Fin: ' +
+        taskEndTime.toLocaleTimeString() +
+        ' Descanso: ' +
+        task.rest +
+        ' minutos',
       data: { data: 'goes here' },
     },
     trigger: { date: taskStartTime, channelId: 'general' },

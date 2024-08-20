@@ -6,11 +6,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "notification": {
+      "icon": "./assets/notification.png",
+      "color": "#ffffff"
+    },
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#222222"
     },
     "ios": {
       "supportsTablet": true
@@ -20,8 +24,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.zeyron.timingtasks",
-      "sound": true
+      "package": "com.zeyron.timingtasks"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,9 +33,11 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/bell.wav"]
+          "sounds": ["./assets/bell.wav"],
+          "icon": "./assets/notification.png"
         }
-      ]
+      ],
+      "expo-router"
     ],
     "extra": {
       "router": {

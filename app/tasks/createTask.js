@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { formatTimeFromDate } from '../../utils/timeUitls';
 import { useLocalSearchParams } from 'expo-router';
+import { Stack } from 'expo-router';
 
 export default function createTask() {
   const [task, setTask] = useState({
@@ -24,9 +25,9 @@ export default function createTask() {
 
   const { colorScheme, toggleColorScheme } = useColorScheme();
 
-  const { selectedPage } = useLocalSearchParams();
+  const { selectedPage, taskId } = useLocalSearchParams();
 
-  const db = SQLite.openDatabaseSync('tasks.db', {
+  const db = SQLite.openDatabaseSync('timing.db', {
     useNewConnection: true,
   });
 
@@ -34,6 +35,18 @@ export default function createTask() {
     const isValid = task.title && task.duration !== null && task.rest !== null;
     setIsSaveEnabled(isValid);
   }, [task]);
+  useEffect(() => {
+    if (taskId) {
+      const task = db.getFirstSync(`SELECT * FROM tasks WHERE id = ${taskId}`);
+      console.log(task);
+      setTask(task);
+      if (task.startTime !== 'No especificado') {
+        setIsEnabled(true);
+        setTime(new Date(task.startTime));
+        setHourSelected(true);
+      }
+    }
+  }, []);
 
   const onChange = (event, selectedTime) => {
     setShow(false);
@@ -80,15 +93,59 @@ export default function createTask() {
     }
   };
 
+  const updateTask = async () => {
+    try {
+      if (task.startTime === 'No especificado' || !task.startTime) {
+        await db.runAsync(
+          `UPDATE tasks SET 
+          title = '${task.title}', 
+          duration = ${task.duration}, 
+          rest = ${task.rest},
+          fixed = 0,
+          startTime = 'No especificado',
+          endTime = 'No especificado'
+          WHERE id = ${taskId}`
+        );
+      } else {
+        if (!(task.startTime instanceof Date)) {
+          task.startTime = new Date(task.startTime);
+          task.endTime = new Date(task.endTime);
+        }
+        await db.runAsync(
+          `UPDATE tasks SET 
+        title = '${task.title}', 
+        duration = ${task.duration}, 
+        rest = ${task.rest}, 
+        startTime = '${task.startTime.toISOString()}', 
+        endTime = '${task.endTime.toISOString()}', 
+        fixed = 1
+        WHERE id = ${taskId}`
+        );
+      }
+      router.navigate('');
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <Layout>
+      {taskId && (
+        <Stack.Screen
+          options={{
+            title: 'Actualizar tarea',
+          }}
+        />
+      )}
       {/* Primera fila */}
       <View className='flex flex-row mb-4'>
         <View className='w-1/2 flex flex-row justify-center'>
           <TextInput
             className='border-b border-b-neutral-400 self-start w-32 dark:text-white'
             placeholder='Titulo'
-            selectionColor={colorScheme === 'light' ? 'black' : 'white'}
+            selectionColor={
+              colorScheme === 'light' ? 'hsl(0,0%,70%)' : 'hsl(0,0%,50%)'
+            }
             placeholderTextColor={'gray'}
             onChangeText={(text) => setTask({ ...task, title: text })}
             value={task.title}
@@ -100,7 +157,7 @@ export default function createTask() {
             className='border-b border-b-neutral-400 dark:text-white'
             placeholder='Minutos'
             placeholderTextColor='gray'
-            selectionColor={'black'}
+            selectionColor={colorScheme === 'light' ? 'black' : 'white'}
             onChangeText={handleDurationChange}
             value={
               task.duration !== null && task.duration !== undefined
@@ -136,7 +193,7 @@ export default function createTask() {
                 ? colorScheme == 'light'
                   ? 'bg-blue-500'
                   : 'bg-blue-600'
-                : 'bg-neutral-200 dark:bg-neutral-700'
+                : 'bg-neutral-300 dark:bg-neutral-700'
             } rounded px-3 py-2`}
             disabled={!isEnabled}
           >
@@ -144,7 +201,7 @@ export default function createTask() {
               className={`${
                 isEnabled
                   ? 'text-white'
-                  : 'text-neutral-500 dark:text-neutral-400'
+                  : 'text-neutral-600 dark:text-neutral-400'
               }`}
             >
               {hourSelected ? formatTimeFromDate(time) : 'Fijar hora'}
@@ -170,7 +227,7 @@ export default function createTask() {
               className='border-b border-b-neutral-400 dark:text-white'
               placeholder='Minutos'
               placeholderTextColor='gray'
-              selectionColor={'black'}
+              selectionColor={colorScheme === 'light' ? 'black' : 'white'}
               onChangeText={handleRestChange}
               value={
                 task.rest !== null && task.rest !== undefined
@@ -188,16 +245,23 @@ export default function createTask() {
           className={`py-2 px-4 rounded ${
             isSaveEnabled
               ? 'bg-green-500'
-              : 'bg-neutral-200 dark:bg-neutral-700'
+              : 'bg-neutral-300 dark:bg-neutral-700'
           }`}
-          onPress={createTask}
+          onPress={() => {
+            if (!taskId) {
+              createTask();
+            } else {
+              // Update task
+              updateTask();
+            }
+          }}
           disabled={!isSaveEnabled}
         >
           <Text
             className={`${
               isSaveEnabled
                 ? 'text-white font-medium'
-                : 'text-neutral-500 dark:text-neutral-400'
+                : 'text-neutral-600 dark:text-neutral-400'
             }`}
           >
             Guardar

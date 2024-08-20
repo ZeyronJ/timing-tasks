@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 export const openDatabase = () => {
-  return SQLite.openDatabaseSync('tasks.db', { useNewConnection: true });
+  return SQLite.openDatabaseSync('timing.db', { useNewConnection: true });
 };
 
 export const createTable = (db) => {
@@ -18,8 +18,7 @@ export const createTable = (db) => {
       rest INTEGER NOT NULL,
       startTime TEXT NOT NULL DEFAULT 'No especificado',
       endTime TEXT NOT NULL DEFAULT 'No especificado',
-      fixed INTEGER NOT NULL DEFAULT 0,
-      disabled INTEGER NOT NULL DEFAULT 0
+      fixed INTEGER NOT NULL DEFAULT 0
     )
   `);
   // db.execSync(`
@@ -38,4 +37,16 @@ export const createTable = (db) => {
 
 export const saveScheme = (db, colorScheme) => {
   db.execSync(`UPDATE config SET colorScheme = '${colorScheme}' WHERE id = 1`);
+};
+
+export const saveSelectedPage = (db, selectedPage) => {
+  db.execSync(`UPDATE config SET selectedPage = ${selectedPage} WHERE id = 1`);
+};
+
+export const saveStartDay = (db, startDay) => {
+  db.execSync(`UPDATE config SET startDay = ${startDay} WHERE id = 1`);
+};
+
+export const saveTemporizador = (db, temporizador) => {
+  db.execSync(`UPDATE config SET temporizador = ${temporizador} WHERE id = 1`);
 };
