@@ -85,12 +85,12 @@ export const useTasks = () => {
       if (temporizador > 0)
         currentTime.setMinutes(currentTime.getMinutes() + temporizador);
 
+      // Primero, procesar todas las tareas dinámicas y asignarles horarios
       const updatedTasks = tasks.map((task, i) => {
         if (task.fixed === 0) {
           currentTime = new Date(
             checkFixedTasks(task, currentTime, fixedTasks)
           );
-          // console.log(`${task.title} - ${currentTime.toLocaleString()}`);
 
           const startTaskTime = new Date(currentTime);
           currentTime.setMinutes(currentTime.getMinutes() + task.duration);
@@ -114,8 +114,75 @@ export const useTasks = () => {
           return task;
         }
       });
-      setTasks(updatedTasks);
-      scheduledTimeNotifications(updatedTasks);
+
+      // Ahora obtener TODAS las tareas (dinámicas y fijas) con sus horarios actualizados
+      const allTasksWithTimes = db.getAllSync(
+        `SELECT * FROM tasks WHERE page = ${selectedPage} AND fixed IN (0, 1) ORDER BY startTime`
+      );
+
+      console.log('=== TODAS LAS TAREAS ORDENADAS ===');
+      allTasksWithTimes.forEach((task) => {
+        console.log(
+          `${task.title}: ${new Date(
+            task.startTime
+          ).toLocaleTimeString()} - ${new Date(
+            task.endTime
+          ).toLocaleTimeString()} (rest: ${task.rest}m)`
+        );
+      });
+
+      // Detectar espacios vacíos entre tareas consecutivas
+      for (let i = 0; i < allTasksWithTimes.length - 1; i++) {
+        const currentTask = allTasksWithTimes[i];
+        const nextTask = allTasksWithTimes[i + 1];
+
+        const currentEndTime = new Date(currentTask.endTime);
+        // Agregar el descanso de la tarea actual
+        currentEndTime.setMinutes(
+          currentEndTime.getMinutes() + currentTask.rest
+        );
+
+        const nextStartTime = new Date(nextTask.startTime);
+
+        // Calcular la diferencia en minutos
+        const gapMinutes = (nextStartTime - currentEndTime) / 60000;
+
+        console.log(
+          `Gap entre ${
+            currentTask.title
+          } (termina: ${currentEndTime.toLocaleTimeString()}) y ${
+            nextTask.title
+          } (empieza: ${nextStartTime.toLocaleTimeString()}): ${gapMinutes} minutos`
+        );
+
+        // Si hay un espacio vacío mayor a 0 minutos
+        if (gapMinutes > 0) {
+          console.log(
+            `Creando tarea de productividad de ${Math.round(
+              gapMinutes
+            )} minutos`
+          );
+          db.execSync(`
+            INSERT INTO tasks (page, title, duration, rest, startTime, endTime, fixed)
+            VALUES (
+              ${selectedPage},
+              'Productividad',
+              ${Math.round(gapMinutes)},
+              0,
+              '${currentEndTime.toISOString()}',
+              '${nextStartTime.toISOString()}',
+              2
+            )
+          `);
+        }
+      }
+
+      // Recargar todas las tareas para incluir las nuevas tareas de productividad
+      const allTasks = db.getAllSync(
+        `SELECT * FROM tasks WHERE page = ${selectedPage}`
+      );
+      setTasks(allTasks);
+      scheduledTimeNotifications(allTasks);
     } else {
       handleEndDay();
     }
@@ -128,10 +195,20 @@ export const useTasks = () => {
           `UPDATE tasks SET startTime = 'No especificado', endTime = 'No especificado' WHERE id = ${task.id}`
         );
       }
+      // Eliminar tareas de productividad autogeneradas (fixed = 2)
+      if (task.fixed === 2) {
+        db.execSync(`DELETE FROM tasks WHERE id = ${task.id}`);
+      }
     });
     setStartDay(0);
     saveStartDay(db, 0);
     Notifications.cancelAllScheduledNotificationsAsync();
+
+    // Recargar tareas después de eliminar las de productividad
+    const remainingTasks = db.getAllSync(
+      `SELECT * FROM tasks WHERE page = ${selectedPage}`
+    );
+    setTasks(remainingTasks);
   };
 
   const deleteTask = (id) => {

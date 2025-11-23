@@ -173,17 +173,30 @@ export default function Page() {
       </View>
       {/* Lista de tareas */}
       <TaskList
-        tasks={tasks.map((task) => ({
-          ...task,
-          startTime:
-            task.startTime !== 'No especificado'
-              ? new Date(task.startTime).toLocaleTimeString()
-              : 'No especificado',
-          endTime:
-            task.endTime !== 'No especificado'
-              ? new Date(task.endTime).toLocaleTimeString()
-              : 'No especificado',
-        }))}
+        tasks={tasks
+          .sort((a, b) => {
+            // Ordenar por startTime (fechas ISO)
+            const timeA =
+              a.startTime !== 'No especificado'
+                ? new Date(a.startTime).getTime()
+                : 0;
+            const timeB =
+              b.startTime !== 'No especificado'
+                ? new Date(b.startTime).getTime()
+                : 0;
+            return timeA - timeB;
+          })
+          .map((task) => ({
+            ...task,
+            startTime:
+              task.startTime !== 'No especificado'
+                ? new Date(task.startTime).toLocaleTimeString()
+                : 'No especificado',
+            endTime:
+              task.endTime !== 'No especificado'
+                ? new Date(task.endTime).toLocaleTimeString()
+                : 'No especificado',
+          }))}
         deleteTask={deleteTask}
       />
     </Layout>
